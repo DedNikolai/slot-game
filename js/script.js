@@ -2,33 +2,48 @@ const game = {
     reels: 4,
     images: ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '1.png', '2.png', '3.png', '4.png'],
     slots: [],
-    speed: 100,
+    speed: 10,
+    intervals: [],
+    clickAudio: new Audio('./music/click.mp3'),
+    looseAudio: new Audio('./music/loose.mp3'),
+    winAudio: new Audio('./music/win.mp3'),
 };
 
 class Slot {
-    intervalId;
 
-    constructor(id, name, position, speed) {
+    constructor(id, name, position) {
         this.id = id;
         this.name = name;
         this.position = position;
-        this.speed = speed;
     };
 
     move() {
-        this.intervalId = setInterval(() => {
-            if (this.position < 1000) {
-                this.position += 100;
-            } else {
-                this.position = -100;
-            }
+        if (this.position < 1090) {
+            this.position += 10;
+        } else {
+            this.position = -100;
+        }
 
-            document.getElementById(`${this.id}`).style.top = this.position + 'px';
-        }, this.speed)
+        document.getElementById(`${this.id}`).style.top = this.position + 'px';
+
     }
 
     stop() {
-        clearInterval(this.intervalId);
+
+        if (this.position % 100 != 0) {
+            if (this.position > 0) {
+                if (this.position > 1000) {
+                    this.position = -100;
+                } else {
+                    this.position = Math.floor(this.position/100)*100 + 100;
+                }
+            }
+
+            if (this.position < 0 && this.position > -100) {
+                this.position = 0;
+            }
+            document.getElementById(`${this.id}`).style.top = this.position + 'px';
+        }
     }
 }
 
@@ -44,7 +59,6 @@ function initialGame() {
             div.className = 'slot';
             div.style.left = i*100 + 'px';
             div.style.top = position + 'px';
-            div.style.transitionDuration = game.speed - 20 + 'ms';
             let img = document.createElement('img');
             img.className = 'slot-image';
             let image = game.images[Math.ceil(Math.random()*game.images.length - 1)];
@@ -55,18 +69,31 @@ function initialGame() {
             game.slots.push(new Slot(id, name, position, game.speed));
             position +=100;
         }
-        game.speed += 10;
     }
 };
 
+document.querySelector('.buttons').addEventListener('click', () => game.clickAudio.play());
+
 document.querySelector('#start').addEventListener('click', event => {
-    game.slots.forEach(slot => slot.move());
+    for (let i = 0; i < game.reels; i++) {
+        let start = i*game.slots.length/game.reels;
+        let end = i*game.slots.length/game.reels + game.slots.length/game.reels;
+        let intervalId = setInterval(() => {
+            game.slots.slice(start, end).forEach(slot => {
+                slot.move();
+            })
+        }, game.speed);
+        game.intervals.push(intervalId);
+        game.speed += 5;
+    }
+
     document.querySelector('#start').setAttribute('disabled', true);
     document.querySelector('#refresh').setAttribute('disabled', true);
 });
 
 document.querySelector('#stop').addEventListener('click', event => {
-    game.slots.forEach(slot => slot.stop())
+    game.intervals.forEach(id => clearInterval(id));
+    game.slots.forEach(slot => slot.stop());
     document.querySelector('#refresh').removeAttribute('disabled');
     checkSlots();
 });
@@ -74,12 +101,13 @@ document.querySelector('#stop').addEventListener('click', event => {
 document.querySelector('#refresh').addEventListener('click', event => {
     game.slots = [];
     document.querySelector('.field').innerHTML = '';
-    game.speed = 100;
+    game.speed = 10;
     initialGame();
     document.querySelector('#start').removeAttribute('disabled');
 });
 
 function checkSlots() {
+    let win = false;
     for (let i = 0; i < 3; i++) {
         let arr = game.slots.filter(slot => slot.position === i*100);
         let map = new Map();
@@ -94,10 +122,16 @@ function checkSlots() {
         
         for (let key of map.keys()) {
             if (map.get(key).length >= 3) {
+                game.winAudio.play();
+                win = true;
                 map.get(key).forEach(slot => {
                     document.getElementById(`${slot.id}`).style.backgroundColor = '#006400'
                 })
             }
         }
+    }
+
+    if (!win) {
+        game.looseAudio.play();
     }
 }
