@@ -2,7 +2,7 @@ const game = {
     reels: 4,
     images: ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '1.png', '2.png', '3.png', '4.png'],
     slots: [],
-    speed: 10,
+    speed: 7,
     intervals: [],
     clickAudio: new Audio('./music/click.mp3'),
     looseAudio: new Audio('./music/loose.mp3'),
@@ -25,7 +25,6 @@ class Slot {
         }
 
         document.getElementById(`${this.id}`).style.top = this.position + 'px';
-
     }
 
     stop() {
@@ -75,33 +74,49 @@ function initialGame() {
 document.querySelector('.buttons').addEventListener('click', () => game.clickAudio.play());
 
 document.querySelector('#start').addEventListener('click', event => {
+    let startTime = 200;
     for (let i = 0; i < game.reels; i++) {
         let start = i*game.slots.length/game.reels;
         let end = i*game.slots.length/game.reels + game.slots.length/game.reels;
-        let intervalId = setInterval(() => {
-            game.slots.slice(start, end).forEach(slot => {
-                slot.move();
-            })
-        }, game.speed);
-        game.intervals.push(intervalId);
-        game.speed += 5;
+        setTimeout(() => {
+            let intervalId = setInterval(() => {
+                game.slots.slice(start, end).forEach(slot => {
+                    slot.move();
+                })
+            }, game.speed);
+            game.intervals.push(intervalId);
+        }, startTime);
+        startTime += 200;
     }
-
     document.querySelector('#start').setAttribute('disabled', true);
     document.querySelector('#refresh').setAttribute('disabled', true);
 });
 
 document.querySelector('#stop').addEventListener('click', event => {
-    game.intervals.forEach(id => clearInterval(id));
-    game.slots.forEach(slot => slot.stop());
-    document.querySelector('#refresh').removeAttribute('disabled');
-    checkSlots();
+    let endTime = 200;
+    for (let i = 0; i < game.reels; i++) {
+        let start = i*game.slots.length/game.reels;
+        let end = i*game.slots.length/game.reels + game.slots.length/game.reels;
+        setTimeout(() => {
+            clearInterval(game.intervals[i]);
+            game.slots.slice(start, end).forEach(slot => {
+                slot.stop()
+            })
+        }, endTime);
+        endTime += 200;
+    }
+    setTimeout(() => {
+        document.querySelector('#refresh').removeAttribute('disabled');
+        checkSlots();
+    }, endTime);
+
 });
 
 document.querySelector('#refresh').addEventListener('click', event => {
     game.slots = [];
+    game.intervals = [];
     document.querySelector('.field').innerHTML = '';
-    game.speed = 10;
+    game.speed = 7;
     initialGame();
     document.querySelector('#start').removeAttribute('disabled');
 });
