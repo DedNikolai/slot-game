@@ -2,7 +2,7 @@ const game = {
     reels: 4,
     images: ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '1.png', '2.png', '3.png', '4.png'],
     slots: [],
-    speed: 7,
+    speed: 5,
     intervals: [],
     clickAudio: new Audio('./music/click.mp3'),
     looseAudio: new Audio('./music/loose.mp3'),
@@ -24,6 +24,11 @@ class Slot {
             this.position = -100;
         }
 
+        document.getElementById(`${this.id}`).style.top = this.position + 'px';
+    }
+
+    stepBack() {
+        this.position -= 20;
         document.getElementById(`${this.id}`).style.top = this.position + 'px';
     }
 
@@ -69,25 +74,39 @@ function initialGame() {
             position +=100;
         }
     }
+    document.querySelector('#stop').setAttribute('disabled', true);
 };
 
 document.querySelector('.buttons').addEventListener('click', () => game.clickAudio.play());
 
 document.querySelector('#start').addEventListener('click', event => {
-    let startTime = 200;
+    let startTime = 500;
     for (let i = 0; i < game.reels; i++) {
         let start = i*game.slots.length/game.reels;
         let end = i*game.slots.length/game.reels + game.slots.length/game.reels;
         setTimeout(() => {
-            let intervalId = setInterval(() => {
-                game.slots.slice(start, end).forEach(slot => {
-                    slot.move();
-                })
-            }, game.speed);
-            game.intervals.push(intervalId);
+            game.slots.slice(start, end).forEach(slot => {
+                slot.stepBack();
+                setTimeout(() => {
+                    document.getElementById(`${slot.id}`).style.transitionDuration = 'unset';
+                }, 200)
+
+            });
+            setTimeout(() => {
+                let intervalId = setInterval(() => {
+                    game.slots.slice(start, end).forEach(slot => {
+                        slot.move();
+                    })
+                }, game.speed);
+                game.intervals.push(intervalId);
+            }, 200);
         }, startTime);
         startTime += 200;
     }
+
+    setTimeout(() => {
+        document.querySelector('#stop').removeAttribute('disabled');
+    }, 1100);
     document.querySelector('#start').setAttribute('disabled', true);
     document.querySelector('#refresh').setAttribute('disabled', true);
 });
